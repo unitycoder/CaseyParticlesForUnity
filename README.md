@@ -1,5 +1,7 @@
 # CaseyParticlesForUnity
-Handmade Hero particle test in Unity + C#
+Handmade Hero particle test in Unity + C# 
+
+*still work-in-progress*
 
 See the original broadcasts
 - https://www.youtube.com/watch?v=G6OGKP3MaUI (Handmade Hero Day 155 - Introduction to Particle Systems)
