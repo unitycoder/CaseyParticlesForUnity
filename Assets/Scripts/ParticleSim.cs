@@ -96,7 +96,8 @@ public class ParticleSim : MonoBehaviour {
 
 			// set initial values
 			particles[NextParticle].P = transform.position+new Vector3(Random.Range(-0.05f, 0.05f), 0, 0); // start pos
-			particles[NextParticle].dP = new Vector3(Random.Range(-0.05f,0.05f),0.85f,0)*7; // start speed
+//			particles[NextParticle].dP = new Vector3(Random.Range(-0.07f,0.07f),0.85f,0)*7; // start speed, global direction
+			particles[NextParticle].dP = transform.TransformDirection(new Vector3(Random.Range(-0.07f,0.07f),0.85f,0)*7); // start speed in local transform direction
 			particles[NextParticle].ddP = new Vector3(0f, -9.81f, 0f); // gravity
 			particles[NextParticle].Col = initialColor;
             particles[NextParticle].dColor = new Vector4(0, Random.Range(-0.25f, -1.25f), 0, Random.Range(-0.25f, -1f));
@@ -121,20 +122,20 @@ public class ParticleSim : MonoBehaviour {
 			float Density = particles[ParticleIndex].Col.w;
 
             ParticleCels[Y, X].Density += Density;
-            //ParticleCels[Y, X].VelocityTimesDensity += Density * particles[ParticleIndex].dP;
+            ParticleCels[Y, X].VelocityTimesDensity += Density * particles[ParticleIndex].dP;
         }
 
 
-        // grid preview
 		if (debugMode)
 		{
-	        for (int y = 0; y < Particle_Cel_Dim; ++y)
+			// grid preview
+			for (int y = 0; y < Particle_Cel_Dim; ++y)
 	        {
 	            for (int x = 0; x < Particle_Cel_Dim; ++x)
 	            {
 
-	                float Density = ParticleCels[y, x].Density;
-	                Color cellColor = new Color(Density,Density,Density,1);
+	                float Alpha = Clamp01(0.1f*ParticleCels[y, x].Density);
+	                Color cellColor = new Color(Alpha,Alpha,Alpha,1);
 
 	                Vector3 gridPos = GridScale*new Vector3(x, y, 0f) + GridOrigin;
 
@@ -150,8 +151,10 @@ public class ParticleSim : MonoBehaviour {
 		{
 			// snap to grid
 			Vector3 P = InvGridScale * (particles[ParticleIndex].P - GridOrigin);
+
 			int X = (int)P.x;
-			int Y = (int)P.y;	
+			int Y = (int)P.y;
+
 			if (X < 1) X = 1;
 			if (X > Particle_Cel_Dim-2) X = Particle_Cel_Dim-2;
 			if (Y < 1) Y = 1;
@@ -174,20 +177,19 @@ public class ParticleSim : MonoBehaviour {
 			Vector3 ddP = particles[ParticleIndex].ddP+Dispersion;
 
 			// calculate movement & color
-			particles[ParticleIndex].P += (0.5f*Mathf.Sqrt(Time.deltaTime)*Time.deltaTime*particles[NextParticle].ddP+Time.deltaTime*particles[ParticleIndex].dP);
+			particles[ParticleIndex].P += (0.5f*Mathf.Sqrt(Time.deltaTime)*Time.deltaTime*ddP + Time.deltaTime*particles[ParticleIndex].dP);
 			particles[ParticleIndex].dP += Time.deltaTime*ddP;
 			particles[ParticleIndex].Col += Time.deltaTime*particles[ParticleIndex].dColor;
 
             // ground collision & bounce
 			if (groundPlaneCollision && particles[ParticleIndex].P.y<groundY)
             {
-                float CoefficientOfRestitution = 0.4f;
-                particles[ParticleIndex].P.y = -particles[ParticleIndex].P.y;
-                particles[ParticleIndex].dP.y = -CoefficientOfRestitution*particles[ParticleIndex].dP.y;
-            }
-
-			// push particles away, based on density
-			particles[ParticleIndex].dP += 1f*ParticleCels[Y, X].Density*Time.deltaTime*new Vector3(particles[ParticleIndex].P.x,0,0);
+                float CoefficientOfRestitution = 0.3f;
+				float CoefficientOfFriction = 0.7f;
+				particles[ParticleIndex].P.y = -particles[ParticleIndex].P.y;
+				particles[ParticleIndex].dP.y = -CoefficientOfRestitution*particles[ParticleIndex].dP.y;
+				particles[ParticleIndex].dP.x = CoefficientOfFriction*particles[ParticleIndex].dP.x;
+			}
 
 			/*
 			// TEST max speed clamp
