@@ -9,7 +9,7 @@ using System.Collections;
 
 public class ParticleSim : MonoBehaviour {
 
-	bool debugMode = true;
+	public bool debugMode = true;
 
 	public bool enableDispersion = true;
 	public Color initialColor = new Vector4(1,1,0,2);
@@ -99,9 +99,9 @@ public class ParticleSim : MonoBehaviour {
 			NextParticle=(NextParticle+1) % particlesAmount;
 
 			// set initial values
-			particles[NextParticle].P = transform.position+new Vector3(Random.Range(-0.05f, 0.05f), 0, 0); // start position
+			particles[NextParticle].P = transform.position+new Vector3(Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f), 0); // start position
 //			particles[NextParticle].dP = new Vector3(Random.Range(-0.07f,0.07f),0.85f,0)*7; // start speed, global direction
-			particles[NextParticle].dP = transform.TransformDirection(new Vector3(Random.Range(-0.01f,0.01f),7f*Random.Range(0.7f,1f),0f)); // start speed in local transform direction
+			particles[NextParticle].dP = transform.TransformDirection(new Vector3(Random.Range(-0.01f,0.01f),7f*Random.Range(0.98f,1f),0f)); // start speed in local transform direction
 			particles[NextParticle].ddP = new Vector3(0f, -9.81f, 0f); // gravity
 			particles[NextParticle].Col = initialColor;
 			float randomVal = Random.Range(-0.25f, -1f);
@@ -125,10 +125,10 @@ public class ParticleSim : MonoBehaviour {
             if (Y < 0) Y = 0;
             if (Y > particle_Cel_Dim - 1) Y = particle_Cel_Dim - 1;
 
-			float density = particles[particleIndex].Col.w;
+			float densityFromAlpha = particles[particleIndex].Col.w;
 
-            ParticleCels[Y, X].Density += density;
-            ParticleCels[Y, X].VelocityTimesDensity += density*particles[particleIndex].dP;
+            ParticleCels[Y, X].Density += densityFromAlpha;
+            ParticleCels[Y, X].VelocityTimesDensity += densityFromAlpha*particles[particleIndex].dP;
         }
 
 
@@ -175,10 +175,19 @@ public class ParticleSim : MonoBehaviour {
 
 			// calculate direction from cell density
 			Vector3 dispersion = Vector3.zero;
-			float dispersionCoeffifient = 1f; // multiplier of pushing force
+			float dispersionCoeffifient = 0.5f; // multiplier of pushing force
 
+			/* original dispersion
 			dispersion += dispersionCoeffifient*(celCenterDensity-celLeftDensity)*new Vector3(-1f,0f,0f);
 			dispersion += dispersionCoeffifient*(celCenterDensity-celRightDensity)*new Vector3(1f,0f,0f);
+			dispersion += dispersionCoeffifient*(celCenterDensity-celDownDensity)*new Vector3(0f,-1f,0f);
+			dispersion += dispersionCoeffifient*(celCenterDensity-celUpDensity)*new Vector3(0f,1f,0f);
+			*/
+
+			// check which side the particle is more (left or right from particle system x)
+			float centerDistanceX = (particles[particleIndex].P.x-transform.position.x);
+			dispersion += dispersionCoeffifient*(celCenterDensity-celLeftDensity)*new Vector3(-1f+centerDistanceX,0f,0f);
+			dispersion += dispersionCoeffifient*(celCenterDensity-celRightDensity)*new Vector3(1f+centerDistanceX,0f,0f);
 			dispersion += dispersionCoeffifient*(celCenterDensity-celDownDensity)*new Vector3(0f,-1f,0f);
 			dispersion += dispersionCoeffifient*(celCenterDensity-celUpDensity)*new Vector3(0f,1f,0f);
 
